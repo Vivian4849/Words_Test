@@ -20,7 +20,7 @@ window.APP_CONFIG = {
   /* ---- 方式一：Google Apps Script（推荐）----
    * 部署后把 /exec 结尾的完整网址填到 GAS_URL。
    * GAS_TOKEN 必须与 Code.gs 里的 TOKEN 完全一致。 */
-  GAS_URL: '',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbyYNwE-Mh-ctwYp_eEWoQmqcSI1ELjr_GrT5Qe6LaDZIvaC4VOw5jua6nRrTrfN4XgEwA/exec',
   GAS_TOKEN: 'toneviz-wc-2026',
 
   /* ---- 方式二：Google Forms（备选）----
