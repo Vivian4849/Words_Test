@@ -72,6 +72,11 @@
         <span>Answer from your first impression. Please do not use a dictionary, a translator, or ask classmates.</span>
       </div>
 
+      <div class="notice err is-hidden" id="set-error">
+        <b>链接不完整 / This link is not valid</b>
+        <span id="set-error-txt">请重新扫描老师给的二维码。/ Please scan the QR code again.</span>
+      </div>
+
       <button class="btn btn-primary btn-block" id="btn-start" type="button">
         开始 / Start
       </button>
@@ -207,6 +212,28 @@
 
       <p class="foot" id="done-foot">
         现在可以关闭页面了。 / You may close this page now.
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== 4.5 · 后台自检（教师用，?selftest=1） ==================== -->
+  <section class="screen" id="s-selftest">
+    <div class="card">
+      <div class="badge badge-admin">后台自检 / Backend self-test</div>
+      <h2 class="h2">这页能不能写进 Google 表格</h2>
+      <p class="h2-en">Can this page write to the Google Sheet?</p>
+
+      <div class="probe" id="probe"></div>
+
+      <button class="btn btn-primary btn-block" id="btn-selftest" type="button">
+        发送测试记录 / Send a test
+      </button>
+
+      <div class="status" id="selftest-status"></div>
+
+      <p class="foot">
+        发完去表格看「提交记录」最后一行：姓名是 <b>SELFTEST-删除我</b> 就说明全链路通了，把这行删掉即可。
+        <br>Check the last row of the sheet. If the name is SELFTEST-删除我, the whole chain works.
       </p>
     </div>
   </section>

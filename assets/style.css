@@ -42,6 +42,9 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* 通用隐藏（含链接参数错误时的拦截状态） */
+.is-hidden { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -243,6 +246,16 @@ input::placeholder { color: #A9B8C7; }
 .notice .btn-outline,
 .notice .btn-outline span { color: var(--brand); }
 
+/* 链接参数错误的红色提示 */
+.notice.err {
+  background: #FEF3F2;
+  border-color: #F6C9C5;
+  border-left-color: #D93025;
+  color: #7A1F1A;
+}
+.notice.err b { color: #9B2C21; }
+.notice.err > span { color: #9B2C21; }
+
 /* ---------- 按钮 ---------- */
 .btn {
   display: inline-flex;
@@ -264,6 +277,14 @@ input::placeholder { color: #A9B8C7; }
 .btn:focus-visible { outline: 3px solid rgba(46,123,196,.4); outline-offset: 2px; }
 
 .btn-block { width: 100%; }
+.btn:disabled,
+.btn[disabled] {
+  opacity: .5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.btn:disabled:active { transform: none; }
+
 .btn-primary {
   background: var(--brand);
   color: #fff;
@@ -633,6 +654,35 @@ input::placeholder { color: #A9B8C7; }
 .status.warn { background: #FFF6E0; border-color: var(--no-line); color: var(--no); }
 .status.err { background: var(--danger-bg); border-color: #F1CFCA; color: var(--danger); }
 .status .en { display: block; font-size: 12px; opacity: .8; margin-top: 3px; }
+
+/* ---------- 后台自检（?selftest=1） ---------- */
+#s-selftest .status { text-align: left; }
+.probe {
+  margin: 18px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  font-size: 13px;
+  background: #FBFDFF;
+}
+.probe .row {
+  display: flex;
+  gap: 10px;
+  padding: 9px 12px;
+  border-top: 1px solid #EEF2F7;
+}
+.probe .row:first-child { border-top: 0; }
+.probe .k { flex: 0 0 84px; color: var(--muted); }
+.probe .v {
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+  font-family: ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.probe .v.ok { color: var(--yes); }
+.probe .v.bad { color: var(--danger); }
 
 .summary {
   display: flex;

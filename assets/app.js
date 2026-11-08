@@ -83,9 +83,18 @@
       return;
     }
 
-    // 测试集
-    var setKey = (params.get('set') || CFG.DEFAULT_SET || 'w1').toLowerCase();
-    if (!ALL[setKey] || !ALL[setKey].length) setKey = 'w1';
+    // 后台连通性自检
+    if (params.get('selftest') === '1') {
+      initSelfTest();
+      return;
+    }
+
+    // 测试集（?set=w1 / ?set=w8）
+    // 参数写错时**不要静默退回 W1**，否则 W8 的班会收到 48 词的 W1 试卷，数据报废。
+    var rawSet = (params.get('set') || '').trim().toLowerCase();
+    var setKey = rawSet || (CFG.DEFAULT_SET || 'w1');
+    var badSet = !!rawSet && !(ALL[setKey] && ALL[setKey].length);
+    if (!(ALL[setKey] && ALL[setKey].length)) setKey = CFG.DEFAULT_SET || 'w1';
     S.setKey = setKey;
     S.meta = (window.SET_META || {})[setKey] || { code: setKey.toUpperCase(), count: (ALL[setKey] || []).length };
 
@@ -95,6 +104,26 @@
       label.textContent = '本次测试：' + (S.meta.cn || S.meta.code) +
         ' · ' + (ALL[setKey] || []).length + ' 个词 / ' +
         (S.meta.en || '') + ' · ' + (ALL[setKey] || []).length + ' words';
+    }
+
+    // 链接参数错误 → 拦住，不让开始
+    if (badSet) {
+      var errBox = $('set-error');
+      var errTxt = $('set-error-txt');
+      if (errBox) errBox.classList.remove('is-hidden');
+      if (errTxt) {
+        errTxt.textContent = '无法识别的测试集「' + rawSet +
+          '」。请重新扫描老师给的二维码（W1 或 W8）。 / Unknown test set "' + rawSet +
+          '". Please scan the QR code again (W1 or W8).';
+      }
+      if (label) label.textContent = '⚠ 链接参数错误 / Invalid link parameter';
+      var sb = $('btn-start');
+      if (sb) {
+        sb.disabled = true;
+        sb.textContent = '链接有误，无法开始 / Invalid link';
+      }
+      bindEvents();
+      return;
     }
 
     bindEvents();
@@ -479,7 +508,7 @@
 
     if (p === 'gas') {
       if (!CFG.GAS_URL) return Promise.resolve({ ok: false, mode: 'offline', reason: 'no-url' });
-      url = CFG.GAS_URL;
+      url = String(CFG.GAS_URL || '').trim();
       body = JSON.stringify({ token: CFG.GAS_TOKEN || '', payload: rec });
       headers = { 'Content-Type': 'text/plain;charset=utf-8' };
     } else if (p === 'gform') {
@@ -746,6 +775,187 @@
       });
     });
     return rows.join('\r\n');
+  }
+
+  /* ---------------- 后台自检（?selftest=1） ----------------
+   * 只发一条假记录，用来确认「网页 → Apps Script → 表格」这条链路通不通。
+   * 不碰任何学生数据，也不写入本机存储。 */
+  function initSelfTest() {
+    show('s-selftest');
+
+    var url = String(CFG.GAS_URL || '').trim();
+    var token = String(CFG.GAS_TOKEN || '');
+    var okUrl = /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url);
+
+    var probe = $('probe');
+    function prow(k, v, cls) {
+      return '<div class="row"><div class="k">' + esc(k) + '</div>' +
+        '<div class="v ' + (cls || '') + '">' + esc(v) + '</div></div>';
+    }
+    probe.innerHTML =
+      prow('提交方式', CFG.PROVIDER || '(空)', CFG.PROVIDER === 'gas' ? 'ok' : 'bad') +
+      prow('GAS_URL', url
+        ? (url.length > 58 ? url.slice(0, 42) + ' … ' + url.slice(-12) : url)
+        : '（空 —— 还没填）', okUrl ? 'ok' : 'bad') +
+      prow('TOKEN', token || '（空）', token === 'toneviz-wc-2026' ? 'ok' : 'bad') +
+      prow('每词时限', (CFG.SECONDS_PER_ITEM || 30) + ' 秒', 'ok');
+
+    $('btn-selftest').addEventListener('click', function () { runSelfTest(url, token); });
+  }
+
+  /* 读服务器回执（?ping=1）。跨域被挡时返回 null。 */
+  function pingServer(url, ms) {
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    var c = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var t = setTimeout(function () { if (c) c.abort(); }, ms);
+    return fetch(url + sep + 'ping=1', {
+      method: 'GET', mode: 'cors', cache: 'no-store',
+      signal: c ? c.signal : undefined
+    })
+      .then(function (r) { return r.text(); })
+      .then(function (txt) {
+        clearTimeout(t);
+        try { return JSON.parse(txt); } catch (e) { return null; }
+      })
+      .catch(function () { clearTimeout(t); return null; });
+  }
+
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  async function runSelfTest(url, token) {
+    var el = $('selftest-status');
+    var btn = $('btn-selftest');
+
+    if (!url) {
+      el.className = 'status err';
+      el.innerHTML = 'GAS_URL 还是空的。请把部署得到的 /exec 网址填进 <b>assets/config.js</b>。' +
+        '<span class="en">GAS_URL is empty. Paste the /exec URL into assets/config.js.</span>';
+      return;
+    }
+
+    var ms = CFG.SEND_TIMEOUT_MS || 12000;
+    btn.disabled = true;
+
+    /* 第 1 步：先问服务器在不在（能读到回执就能拿到版本号与当前行数） */
+    el.className = 'status';
+    el.innerHTML = '第 1 步：连接服务器…<span class="en">Step 1: contacting the endpoint…</span>';
+    var before = await pingServer(url, ms);
+
+    if (!before || !before.ok) {
+      el.className = 'status err';
+      el.innerHTML = '连不上这个网址（读不到任何回执）。<br>' +
+        '先排除三种情况：<br>' +
+        '① 这台设备能不能打开 google.com —— 打不开就是网络问题，与本系统无关；<br>' +
+        '② 网址是否以 <b>/exec</b> 结尾（不是 /dev、不是复制了一半）；<br>' +
+        '③ 直接把这个网址粘到浏览器地址栏，看是否显示 endpoint is running。<br>' +
+        '这三条都正常仍失败，再点一次按钮（有时只是首次冷启动慢）。' +
+        '<span class="en">Cannot reach the endpoint.</span>';
+      btn.disabled = false;
+      return;
+    }
+
+    /* 第 2 步：发一条假记录 */
+    el.innerHTML = '服务器在线：<b>' + esc(before.version || '?') + '</b> · 表格「' +
+      esc(before.spreadsheet || '?') + '」<br>当前已有 提交记录 ' + esc(String(before.submitRows)) +
+      ' 行 / 逐题明细 ' + esc(String(before.itemRows)) + ' 行。<br>第 2 步：发送测试记录…';
+
+    var sid = 'SELFTEST-' + Date.now().toString(36).toUpperCase();
+    var payload = {
+      v: 1, session: sid, ts: nowISO(), tz: 'selftest',
+      set: 'SELFTEST', setKey: 'selftest',
+      name: 'SELFTEST-删除我', cls: '测试', native: '测试', sid: '',
+      n: 1, durationSec: 1, ua: 'selftest',
+      answers: [{
+        n: 1, set: '测试', word: '测试', pinyin: 'cè shì', combo: '4+4',
+        known: 'yes', meaning: 'test', status: 'answered', rt: 1
+      }]
+    };
+    var body = JSON.stringify({ token: token, payload: payload });
+
+    /* 先按 CORS 发，能读到回执就直接看 ok / bad token */
+    var txt = null;
+    try {
+      var res = await fetch(url, {
+        method: 'POST', mode: 'cors', cache: 'no-store',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: body
+      });
+      txt = await res.text();
+    } catch (e) { txt = null; }
+
+    var json = null;
+    if (txt) { try { json = JSON.parse(txt); } catch (e) { json = null; } }
+
+    if (json && json.ok) {
+      succeed(el, btn, sid, txt, true);
+      return;
+    }
+    if (json && json.ok === false) {
+      el.className = 'status err';
+      el.innerHTML = '服务器收到了请求，但拒绝写入：<b>' + esc(json.error || '未知原因') + '</b><br>' +
+        (json.error === 'bad token'
+          ? 'TOKEN 不一致 —— config.js 的 <b>GAS_TOKEN</b> 必须与 Code.gs 的 <b>TOKEN</b> 完全相同（含大小写、不能有空格）。'
+          : '把这句话发我，我来判断。') +
+        '<span class="en">The server rejected the request.</span>';
+      btn.disabled = false;
+      return;
+    }
+
+    /* 读不到回执（跨域限制）→ 退化成 no-cors 再发一次，然后用 ping 复核行数 */
+    var sent = false;
+    try {
+      await fetch(url, {
+        method: 'POST', mode: 'no-cors', cache: 'no-store',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: body
+      });
+      sent = true;
+    } catch (e) { sent = false; }
+
+    if (sent) {
+      el.innerHTML = '第 3 步：已发出，正在核对行数…<span class="en">Step 3: verifying…</span>';
+      await sleep(2000);
+      var after = await pingServer(url, ms);
+      if (after && after.ok && after.submitRows > before.submitRows) {
+        succeed(el, btn, sid, '', false);
+        return;
+      }
+      if (after && after.ok) {
+        el.className = 'status err';
+        el.innerHTML = '服务器在线，但<b>行数没有增加</b>（' + esc(String(before.submitRows)) +
+          ' → ' + esc(String(after.submitRows)) + '）。<br>' +
+          '最可能是 <b>TOKEN 不一致</b>：config.js 的 GAS_TOKEN 与 Code.gs 的 TOKEN 要逐字相同。<br>' +
+          '其次是部署版本不是最新：部署 → 管理部署 → 编辑 → 版本选「新版本」。' +
+          '<span class="en">Endpoint reachable, but nothing was written.</span>';
+        btn.disabled = false;
+        return;
+      }
+    }
+
+    if (!sent) {
+      el.className = 'status err';
+      el.innerHTML = '请求发不出去。这台设备到 Google 的网络不通，或网址不对。' +
+        '<span class="en">The request could not be sent.</span>';
+      btn.disabled = false;
+      return;
+    }
+
+    el.className = 'status warn';
+    el.innerHTML = '请求已发出，但读不到回执、也无法复核行数。<br>' +
+      '请直接去表格看「提交记录」最后一行是不是 <b>SELFTEST-删除我</b>：<br>' +
+      '· 有 → 全链路通了，把这一行删掉即可<br>' +
+      '· 等 30 秒仍没有 → 多半是「谁可以访问」没选成「任何人」' +
+      '<span class="en">Sent. Please confirm in the sheet.</span>';
+    btn.disabled = false;
+  }
+
+  function succeed(el, btn, sid, txt, readable) {
+    el.className = 'status ok';
+    el.innerHTML = '写入成功。表格里多了一行 <b>SELFTEST-删除我</b>（session <b>' + esc(sid) + '</b>）。' +
+      (readable && txt ? '<br>服务器回执：' + esc(txt) : '') +
+      '<br>确认后把这一行删掉即可，然后就可以把链接发给学生了。' +
+      '<span class="en">Write succeeded. Delete the SELFTEST row afterwards.</span>';
+    btn.disabled = false;
   }
 
   /* ---------------- go ---------------- */
