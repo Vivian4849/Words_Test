@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F4E79">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex,nofollow">
+<title>汉语词语认识情况调查 / Chinese Word Familiarity Check</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main id="app">
+
+  <!-- ==================== 0 · 欢迎与信息填写 ==================== -->
+  <section class="screen is-active" id="s-welcome">
+    <div class="card">
+      <div class="brand"><span>ToneViz</span></div>
+
+      <h1 class="h1">汉语词语认识情况调查</h1>
+      <p class="h1-en">Chinese Word Familiarity Check</p>
+
+      <p class="lead">
+        这份问卷不是考试，不计分，也不影响你的课程成绩。<br>
+        它只帮助我们了解你目前认识哪些词。
+      </p>
+      <p class="lead en">
+        This is not a test. It will not be graded and does not affect your course marks.
+        It only helps us see which words you already know.
+      </p>
+
+      <div class="form">
+        <div class="field">
+          <label class="lab" for="in-name">姓名 <em>Name</em></label>
+          <input id="in-name" type="text" autocomplete="name" placeholder="请填写 / Your name">
+        </div>
+
+        <div class="field">
+          <label class="lab" for="in-class">班级 <em>Class</em></label>
+          <select id="in-class">
+            <option value="">请选择 / Select</option>
+            <option value="A班">A班（周一、周五 / Mon &amp; Fri）</option>
+            <option value="B班">B班（周二、周三 / Tue &amp; Wed）</option>
+            <option value="C班">C班（周二、周三、周四 / Tue, Wed &amp; Thu）</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="lab" for="in-native">母语 <em>Native language</em></label>
+          <select id="in-native">
+            <option value="">请选择 / Select</option>
+            <option value="意大利语">意大利语 / Italian</option>
+            <option value="英语">英语 / English</option>
+            <option value="其他">其他 / Other</option>
+          </select>
+        </div>
+
+        <div class="field is-hidden" id="field-native-other">
+          <label class="lab" for="in-native-other">请填写母语 <em>Please specify</em></label>
+          <input id="in-native-other" type="text" placeholder="例如 / e.g. Spanish">
+        </div>
+
+        <div class="field">
+          <label class="lab" for="in-sid">学号后两位 <em>Last 2 digits of student ID</em>
+            <span class="opt">选填 / optional</span></label>
+          <input id="in-sid" type="text" inputmode="numeric" maxlength="4" placeholder="例如 / e.g. 07">
+        </div>
+      </div>
+
+      <div class="notice">
+        <b>请按第一反应作答。不要查字典、不要用翻译软件、不要问同学。</b>
+        <span>Answer from your first impression. Please do not use a dictionary, a translator, or ask classmates.</span>
+      </div>
+
+      <button class="btn btn-primary btn-block" id="btn-start" type="button">
+        开始 / Start
+      </button>
+
+      <p class="foot" id="set-label"></p>
+    </div>
+  </section>
+
+  <!-- ==================== 1 · 练习说明 ==================== -->
+  <section class="screen" id="s-practice-intro">
+    <div class="card">
+      <div class="badge">练习 / Practice</div>
+      <h2 class="h2">先做 4 个词，熟悉一下流程</h2>
+      <p class="h2-en">Four practice words first, to get used to the flow.</p>
+
+      <ul class="rules">
+        <li>
+          <b>每个词 30 秒</b>，时间到会自动进入下一题。
+          <span>30 seconds per word. When time is up it moves on automatically.</span>
+        </li>
+        <li>
+          <b>认识</b> → 请写出它的意思；<b>不认识</b> → 直接进入下一题。
+          <span>Know it → write the meaning. Don't know it → the next word appears straight away.</span>
+        </li>
+        <li>
+          练习的 4 个词<b>不计分、不保存、不上传</b>。
+          <span>The four practice words are not scored, not saved and not uploaded.</span>
+        </li>
+      </ul>
+
+      <button class="btn btn-primary btn-block" id="btn-practice-start" type="button">
+        开始练习 / Start practice
+      </button>
+      <p class="foot">练习时可以把流程走一遍，正式部分才开始记录。</p>
+    </div>
+  </section>
+
+  <!-- ==================== 2 · 正式测试说明 ==================== -->
+  <section class="screen" id="s-main-intro">
+    <div class="card">
+      <div class="badge badge-main" id="main-badge">正式测试 / Main</div>
+      <h2 class="h2" id="main-title">练习结束，现在开始正式部分</h2>
+      <p class="h2-en">Practice finished. The main part starts now.</p>
+      <p class="who-line" id="main-who"></p>
+
+      <div class="stats" id="main-stats"></div>
+
+      <ul class="rules">
+        <li>
+          共 <b id="main-count">48</b> 个词，每个 30 秒，时间到自动跳到下一个。
+          <span id="main-count-en">48 words, 30 seconds each, then it moves on automatically.</span>
+        </li>
+        <li>
+          中途<b>不要刷新页面、不要退出</b>。万一断了，重新打开可以继续（已答的会保留）。
+          <span id="main-warn-en">Please do not refresh or close the page. If it does break, reopen it — answers already given are kept.</span>
+        </li>
+      </ul>
+
+      <button class="btn btn-primary btn-block" id="btn-main-start" type="button">
+        开始正式测试 / Start
+      </button>
+    </div>
+  </section>
+
+  <!-- ==================== 3 · 答题 ==================== -->
+  <section class="screen screen-item" id="s-item">
+    <header class="hud">
+      <div class="hud-left">
+        <div class="hud-tag" id="hud-tag">练习 / Practice</div>
+        <div class="hud-step" id="hud-step">1 / 4</div>
+      </div>
+      <div class="bar"><i id="hud-bar"></i></div>
+      <div class="clock" id="clock">
+        <svg viewBox="0 0 44 44" aria-hidden="true">
+          <circle class="ring-bg" cx="22" cy="22" r="19"></circle>
+          <circle class="ring-fg" id="ring" cx="22" cy="22" r="19"></circle>
+        </svg>
+        <b id="clock-num">30</b>
+      </div>
+    </header>
+
+    <div class="wordcard">
+      <div class="word" id="word">你好</div>
+      <div class="pinyin" id="pinyin">nǐ hǎo</div>
+    </div>
+
+    <div class="ask" id="ask">
+      <div class="ask-cn">你认识这个词吗？</div>
+      <div class="ask-en">Do you know this word?</div>
+    </div>
+
+    <div class="choices" id="choices">
+      <button class="btn btn-yes" data-ans="yes" type="button">
+        <span class="btn-cn">认识</span>
+        <span class="btn-en">Yes, I know it</span>
+      </button>
+      <button class="btn btn-no" data-ans="no" type="button">
+        <span class="btn-cn">不认识</span>
+        <span class="btn-en">No, I don’t</span>
+      </button>
+    </div>
+
+    <div class="meaning is-hidden" id="meaning">
+      <label class="meaning-label" for="in-meaning">
+        这个词的意思是 <span class="dash">&nbsp;</span>
+      </label>
+      <div class="meaning-en">What does this word mean? （用你的母语 / in your native language）</div>
+      <input id="in-meaning" type="text" autocomplete="off" autocapitalize="off"
+             autocorrect="off" spellcheck="false" placeholder="例如 / e.g.  worry">
+      <button class="btn btn-primary btn-block" id="btn-next" type="button">
+        下一题 / Next
+      </button>
+      <p class="hint">
+        计时仍在继续，请尽快填写。
+        <span>The timer is still running — please be quick.</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== 4 · 完成 ==================== -->
+  <section class="screen" id="s-done">
+    <div class="card">
+      <div class="done-icon" id="done-icon">✓</div>
+      <h2 class="h2" id="done-title">已完成，谢谢！</h2>
+      <p class="h2-en" id="done-sub">All done. Thank you!</p>
+
+      <div class="status" id="status-line"></div>
+      <div class="summary" id="summary"></div>
+
+      <button class="btn btn-outline btn-block is-hidden" id="btn-download" type="button">
+        下载我的答案 / Download my answers
+      </button>
+
+      <p class="foot" id="done-foot">
+        现在可以关闭页面了。 / You may close this page now.
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== 5 · 教师回收面板 ==================== -->
+  <section class="screen" id="s-admin">
+    <div class="card wide">
+      <div class="badge badge-admin">教师面板 / Teacher panel</div>
+      <h2 class="h2">本机暂存记录</h2>
+      <p class="h2-en">Records stored on this device</p>
+
+      <div class="admin-bar">
+        <button class="btn btn-sm btn-primary" id="btn-exp-json" type="button">导出 JSON</button>
+        <button class="btn btn-sm btn-outline" id="btn-exp-csv" type="button">导出 CSV（逐题）</button>
+        <button class="btn btn-sm btn-outline" id="btn-merge" type="button">合并学生文件</button>
+        <button class="btn btn-sm btn-danger" id="btn-clear" type="button">清空本机</button>
+        <input type="file" id="file-merge" accept=".json,application/json" multiple hidden>
+      </div>
+
+      <div class="admin-list" id="admin-list"></div>
+
+      <p class="foot">
+        提示：本面板只读取本设备的浏览器存储。要汇总全班数据，请以 Google 表格里的记录为准，
+        或让学生把下载的 JSON 文件发给你，再用「合并学生文件」导入。
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<!-- 提交用的隐藏 iframe 兜底（老浏览器 / 拦截 fetch 时使用） -->
+<iframe name="sink" id="sink" style="display:none" title="sink"></iframe>
+
+<script src="assets/config.js"></script>
+<script src="assets/words.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
